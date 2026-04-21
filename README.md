@@ -36,6 +36,12 @@ A beautiful, modern music player for your local audio files with powerful audio 
 - **Cross-Platform** - Works on Windows, Mac, Linux, Android, iOS
 
 ## ScreenShots
+<img width="991" height="924" alt="Screenshot 2026-04-21 181418" src="https://github.com/user-attachments/assets/58e89c0b-8cb0-4819-b0a9-8a77ee64b0ee" />
+<img width="281" height="292" alt="Screenshot 2026-04-21 181431" src="https://github.com/user-attachments/assets/7733057c-75a1-4add-93e9-92c1704a9c0d" />
+<img width="355" height="129" alt="Screenshot 2026-04-21 181531" src="https://github.com/user-attachments/assets/11483b4d-ccb1-454a-a4e4-824982bf3059" />
+<img width="987" height="510" alt="Screenshot 2026-04-21 181510" src="https://github.com/user-attachments/assets/17442cf6-9d51-4322-a246-3a03f6c3e84d" />
+<img width="992" height="344" alt="Screenshot 2026-04-21 181520" src="https://github.com/user-attachments/assets/1a32f9f7-05b8-44a7-9bac-b2793cf33d98" />
+<img width="979" height="574" alt="Screenshot 2026-04-21 181458" src="https://github.com/user-attachments/assets/f4c9286f-aadd-4003-81c3-344d93af74ad" />
 
 
 ## 📥 Download
