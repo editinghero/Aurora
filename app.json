@@ -1,0 +1,32 @@
+{
+  "expo": {
+    "name": "Aurora Music Player",
+    "slug": "aurora-music-player",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./public/android-512x512.png",
+    "userInterfaceStyle": "dark",
+    "splash": {
+      "image": "./public/android-512x512.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#0f1014"
+    },
+    "assetBundlePatterns": ["**/*"],
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.aurora.musicplayer"
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./public/android-512x512.png",
+        "backgroundColor": "#0f1014"
+      },
+      "package": "com.aurora.musicplayer"
+    },
+    "web": {
+      "bundler": "metro",
+      "output": "static",
+      "favicon": "./public/favicon.ico"
+    }
+  }
+}

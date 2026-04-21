@@ -1,0 +1,56 @@
+{
+  "name": "aurora-desktop",
+  "version": "1.0.0",
+  "description": "Aurora Music Player - Desktop Edition",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "dev": "electron . --dev",
+    "build:web": "vite build",
+    "build": "npm run build:web && electron-builder",
+    "rebuild": "electron-rebuild",
+    "postinstall": "electron-rebuild"
+  },
+  "build": {
+    "appId": "com.aurora.musicplayer",
+    "productName": "Aurora Music Player",
+    "directories": {
+      "output": "dist-installer"
+    },
+    "files": [
+      "main.js",
+      "dist/**/*",
+      "icon.png",
+      "package.json"
+    ],
+    "win": {
+      "target": [
+        {
+          "target": "portable",
+          "arch": ["x64"]
+        }
+      ],
+      "icon": "icon.png",
+      "artifactName": "${productName}-${version}-Portable.${ext}"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "Aurora Music Player"
+    }
+  },
+  "dependencies": {
+    "better-sqlite3": "^11.0.0",
+    "music-metadata": "^8.1.4",
+    "sharp": "^0.33.0"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-react-swc": "^3.5.0",
+    "electron": "^28.0.0",
+    "electron-builder": "^24.9.1",
+    "electron-rebuild": "^3.2.9",
+    "vite": "^5.0.0"
+  }
+}
