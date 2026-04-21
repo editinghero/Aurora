@@ -5,7 +5,7 @@ A beautiful, modern music player for your local audio files with powerful audio 
 ![Aurora Music Player](https://img.shields.io/badge/version-1.0.0-blue)
 ![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20Web-lightgrey)
 
-## ✨ Features
+##  Features
 
 ### Audio Playback
 - **Local File Support** - Play MP3, M4A, FLAC, WAV, and OGG files
@@ -35,14 +35,41 @@ A beautiful, modern music player for your local audio files with powerful audio 
 - **Works Offline** - Play your music without an internet connection
 - **Cross-Platform** - Works on Windows, Mac, Linux, Android, iOS
 
-## ScreenShots
+## Screenshots
+
+<table>
+  <tr>
+    <td width="50%">
+      <img alt="Main Player Interface" src="https://github.com/user-attachments/assets/58e89c0b-8cb0-4819-b0a9-8a77ee64b0ee" />
+    </td>
+    <td width="50%">
+      <img alt="Mini Player" src="https://github.com/user-attachments/assets/7733057c-75a1-4add-93e9-92c1704a9c0d" />
+    </td>
+  </tr>
+  <tr>
+    <td width="50%">
+      <img alt="Queue Management" src="https://github.com/user-attachments/assets/17442cf6-9d51-4322-a246-3a03f6c3e84d" />
+    </td>
+    <td width="50%">
+      <img alt="Audio Effects" src="https://github.com/user-attachments/assets/1a32f9f7-05b8-44a7-9bac-b2793cf33d98" />
+    </td>
+  </tr>
+  <tr>
+    <td width="50%">
+      <img alt="Equalizer" src="https://github.com/user-attachments/assets/f4c9286f-aadd-4003-81c3-344d93af74ad" />
+    </td>
+    <td width="50%">
+      <img alt="Theme Picker" src="https://github.com/user-attachments/assets/11483b4d-ccb1-454a-a4e4-824982bf3059" />
+    </td>
+  </tr>
+</table>
 
 
-## 📥 Download
+##  Download
 
 ### Desktop App (Windows)
 
-**[Download Latest Release](https://github.com/editinghero/aurora-music-player/releases/latest)**
+**[Download Latest Release](https://github.com/editinghero/aurora/releases/latest)**
 
 Choose one:
 - **Portable Version** - No installation required, just run the .exe
@@ -57,7 +84,7 @@ Or install as PWA:
 2. Click the install icon in your browser's address bar
 3. Enjoy Aurora as a standalone app
 
-## 🚀 Getting Started
+##  Getting Started
 
 ### Desktop App
 
@@ -91,7 +118,7 @@ Or install as PWA:
 - **Effects** - Control playback speed and reverb intensity
 - **Themes** - Pick a color theme or enable auto-theme for variety
 
-## 🎨 Themes
+##  Themes
 
 Choose from 8 beautiful themes:
 - Ember (Orange/Red)
@@ -105,7 +132,7 @@ Choose from 8 beautiful themes:
 
 Enable **Auto Theme** to randomly change themes with each song!
 
-## ⌨️ Keyboard Shortcuts
+##  Keyboard Shortcuts
 
 - **Space** - Play/Pause
 - **Arrow Left** - Previous track
@@ -113,7 +140,7 @@ Enable **Auto Theme** to randomly change themes with each song!
 - **Swipe Left/Right** - Skip tracks (touch devices)
 - **Swipe Up** - Open queue (touch devices)
 
-## 🔧 System Requirements
+##  System Requirements
 
 ### Desktop App
 - **OS**: Windows 10 or later (64-bit)
@@ -124,7 +151,7 @@ Enable **Auto Theme** to randomly change themes with each song!
 - **Browser**: Chrome, Edge, Firefox, Safari (latest versions)
 - **Storage**: Depends on browser cache settings
 
-## 💡 Tips
+##  Tips
 
 - **Desktop**: Use "Open Folder" to scan your entire music collection once, then use "Library" to load instantly
 - **Search**: Use the search bar in the queue to quickly find songs
@@ -132,25 +159,25 @@ Enable **Auto Theme** to randomly change themes with each song!
 - **Auto Theme**: Enable for a fresh look with every song
 - **Equalizer Presets**: Start with a preset and fine-tune to your taste
 
-## 🐛 Known Issues
+##  Known Issues
 
 - Large music libraries (10,000+ tracks) may take time to scan initially
 - Album artwork extraction requires proper ID3 tags in your music files
 - Web app cannot access local file system directly (browser limitation)
 
-## 📝 License
+##  License
 
 This project is open source and available under the MIT License.
 
-## 🤝 Contributing
+##  Contributing
 
 Contributions are welcome! Please check out the [Developer Setup Guide](SETUP.md) to get started.
 
-## 📞 Support
+##  Support
 
-- **Issues**: [GitHub Issues](https://github.com/editinghero/aurora-music-player/issues)
-- **Discussions**: [GitHub Discussions](https://github.com/editinghero/aurora-music-player/discussions)
+- **Issues**: [GitHub Issues](https://github.com/editinghero/aurora/issues)
+- **Discussions**: [GitHub Discussions](https://github.com/editinghero/aurora/discussions)
 
 ---
 
-**[Developer Setup Guide](SETUP.md)** | **[Download Latest Release](https://github.com/editinghero/aurora-music-player/releases/latest)** | **[Web Player](https://auroralocal.pages.dev)**
+**[Developer Setup Guide](SETUP.md)** | **[Download Latest Release](https://github.com/editinghero/aurora/releases/latest)** | **[Web Player](https://auroralocal.pages.dev)**
