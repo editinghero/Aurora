@@ -14,6 +14,10 @@ type Props = {
   onPreservePitch: (v: boolean) => void;
   reverbWet: number;
   onReverbWet: (v: number) => void;
+  eightDEnabled?: boolean;
+  onEightDEnabled?: (v: boolean) => void;
+  eightDSpeed?: number;
+  onEightDSpeed?: (v: number) => void;
 };
 
 export function EffectsSheet(p: Props) {
@@ -30,7 +34,7 @@ export function EffectsSheet(p: Props) {
           </SheetHeader>
         </div>
 
-        <div className="space-y-8 px-2">
+        <div className="space-y-8 px-2 overflow-y-auto max-h-[70vh]">
           <div>
             <div className="flex items-center justify-between mb-3">
               <Label className="text-sm">Speed</Label>
@@ -53,6 +57,39 @@ export function EffectsSheet(p: Props) {
             </div>
             <Slider min={0} max={1} step={0.01} value={[p.reverbWet]} onValueChange={(v) => p.onReverbWet(v[0])} />
             <p className="text-xs text-muted-foreground mt-2">Adds spacious hall ambience to the song.</p>
+          </div>
+
+          <div className="space-y-6 pt-2 border-t border-white/5">
+            <div className="flex items-center justify-between">
+              <div>
+                <Label htmlFor="8d" className="text-sm font-medium">8D Audio</Label>
+                <p className="text-[10px] text-muted-foreground">360° rotating sound effect</p>
+              </div>
+              <Switch
+                id="8d"
+                checked={p.eightDEnabled}
+                onCheckedChange={p.onEightDEnabled}
+              />
+            </div>
+
+            {p.eightDEnabled && (
+              <div className="animate-in fade-in slide-in-from-top-2 duration-300">
+                <div className="flex items-center justify-between mb-3">
+                  <Label className="text-sm">8D Rotation Speed</Label>
+                  <span className="text-sm tabular-nums text-muted-foreground">{(p.eightDSpeed || 0.15).toFixed(2)}Hz</span>
+                </div>
+                <Slider
+                  min={0.05}
+                  max={0.5}
+                  step={0.01}
+                  value={[p.eightDSpeed || 0.15]}
+                  onValueChange={(v) => p.onEightDSpeed?.(v[0])}
+                />
+                <div className="flex justify-between text-[10px] text-muted-foreground mt-1">
+                  <span>Slow</span><span>Medium</span><span>Fast</span>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </SheetContent>

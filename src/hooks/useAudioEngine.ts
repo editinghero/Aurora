@@ -12,6 +12,8 @@ type EngineState = {
   speed: number;
   preservePitch: boolean;
   reverbWet: number; // 0..1
+  eightDEnabled: boolean;
+  eightDSpeed: number;
   eqGains: EqGains;
   shuffle: boolean;
   repeat: RepeatMode;
@@ -27,8 +29,10 @@ export function useAudioEngine(queue: Track[], currentIndex: number, onIndexChan
   const dryGainRef = useRef<GainNode | null>(null);
   const wetGainRef = useRef<GainNode | null>(null);
   const convolverRef = useRef<ConvolverNode | null>(null);
+  const pannerRef = useRef<StereoPannerNode | null>(null);
   const masterRef = useRef<GainNode | null>(null);
   const analyserRef = useRef<AnalyserNode | null>(null);
+  const animationRef = useRef<number | null>(null);
 
   const [state, setState] = useState<EngineState>({
     isPlaying: false,
@@ -38,6 +42,8 @@ export function useAudioEngine(queue: Track[], currentIndex: number, onIndexChan
     speed: 1,
     preservePitch: true,
     reverbWet: 0,
+    eightDEnabled: false,
+    eightDSpeed: 0.15,
     eqGains: DEFAULT_EQ,
     shuffle: false,
     repeat: "off",
@@ -82,7 +88,11 @@ export function useAudioEngine(queue: Track[], currentIndex: number, onIndexChan
     reverbPre.Q.value = 0.7;
     const conv = ctx.createConvolver();
     conv.normalize = true;
-    conv.buffer = createReverbImpulse(ctx, 3.2, 3.0);
+    conv.buffer = createReverbImpulse(ctx, 3.5, 3.5);
+
+    // 8D Panner
+    const panner = ctx.createStereoPanner();
+    panner.pan.value = 0;
 
     const master = ctx.createGain(); master.gain.value = 1;
     const analyser = ctx.createAnalyser();
@@ -95,17 +105,45 @@ export function useAudioEngine(queue: Track[], currentIndex: number, onIndexChan
     eqOut.connect(reverbPre);
     reverbPre.connect(conv);
     conv.connect(wet);
-    dry.connect(master);
-    wet.connect(master);
+    dry.connect(panner);
+    wet.connect(panner);
+    panner.connect(master);
     master.connect(analyser);
     analyser.connect(ctx.destination);
 
     dryGainRef.current = dry;
     wetGainRef.current = wet;
     convolverRef.current = conv;
+    pannerRef.current = panner;
     masterRef.current = master;
     analyserRef.current = analyser;
   }, []);
+
+  // 8D Animation Loop
+  useEffect(() => {
+    if (state.eightDEnabled && state.isPlaying) {
+      const animate = (time: number) => {
+        if (pannerRef.current) {
+          // Sine wave oscillation for smooth 360-like rotation effect
+          const pan = Math.sin(time / 1000 * state.eightDSpeed * Math.PI * 2);
+          pannerRef.current.pan.setTargetAtTime(pan, ctxRef.current!.currentTime, 0.05);
+        }
+        animationRef.current = requestAnimationFrame(animate);
+      };
+      animationRef.current = requestAnimationFrame(animate);
+    } else {
+      if (animationRef.current) {
+        cancelAnimationFrame(animationRef.current);
+        animationRef.current = null;
+      }
+      if (pannerRef.current && ctxRef.current) {
+        pannerRef.current.pan.setTargetAtTime(0, ctxRef.current.currentTime, 0.1);
+      }
+    }
+    return () => {
+      if (animationRef.current) cancelAnimationFrame(animationRef.current);
+    };
+  }, [state.eightDEnabled, state.isPlaying, state.eightDSpeed]);
 
   // Bind <audio> events
   useEffect(() => {
@@ -258,6 +296,15 @@ export function useAudioEngine(queue: Track[], currentIndex: number, onIndexChan
     setState((p) => ({ ...p, reverbWet: w }));
   }, [ensureGraph]);
 
+  const setEightDEnabled = useCallback((b: boolean) => {
+    ensureGraph();
+    setState((p) => ({ ...p, eightDEnabled: b }));
+  }, [ensureGraph]);
+
+  const setEightDSpeed = useCallback((s: number) => {
+    setState((p) => ({ ...p, eightDSpeed: s }));
+  }, []);
+
   const setEqGain = useCallback((index: number, gainDb: number) => {
     ensureGraph();
     const node = eqNodesRef.current[index];
@@ -304,8 +351,10 @@ export function useAudioEngine(queue: Track[], currentIndex: number, onIndexChan
   return useMemo(() => ({
     state,
     play, pause, toggle, seek, next, prev,
-    setVolume, setSpeed, setPreservePitch, setReverbWet, setEqGain, resetEq,
+    setVolume, setSpeed, setPreservePitch, setReverbWet,
+    setEightDEnabled, setEightDSpeed,
+    setEqGain, resetEq,
     toggleShuffle, cycleRepeat,
     getAnalyser,
-  }), [state, play, pause, toggle, seek, next, prev, setVolume, setSpeed, setPreservePitch, setReverbWet, setEqGain, resetEq, toggleShuffle, cycleRepeat, getAnalyser]);
+  }), [state, play, pause, toggle, seek, next, prev, setVolume, setSpeed, setPreservePitch, setReverbWet, setEightDEnabled, setEightDSpeed, setEqGain, resetEq, toggleShuffle, cycleRepeat, getAnalyser]);
 }
