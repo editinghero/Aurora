@@ -61,9 +61,14 @@ const Index = () => {
     const t = THEMES.find((x) => x.id === themeId) ?? THEMES[0];
     if (!autoTheme) {
       applyTheme(t);
+    } else if (current) {
+      // If autoTheme is on, a random theme is already applied in the next useEffect.
+      // But we still want to ensure a theme is applied if autoTheme is on but no track is playing.
+    } else {
+      applyTheme(t);
     }
     localStorage.setItem(THEME_KEY, t.id);
-  }, [themeId, autoTheme]);
+  }, [themeId, autoTheme, current?.id]);
 
   useEffect(() => {
     localStorage.setItem(THEME_AUTO_KEY, autoTheme ? "1" : "0");

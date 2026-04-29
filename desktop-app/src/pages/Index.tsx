@@ -176,10 +176,14 @@ const Index = () => {
     // If auto theme is disabled, apply the selected theme
     if (!autoTheme) {
       applyTheme(t);
+    } else if (current) {
+      // If autoTheme is on, a random theme is already applied in the next useEffect.
+    } else {
+      applyTheme(t);
     }
     
     localStorage.setItem(THEME_KEY, t.id);
-  }, [themeId, autoTheme]);
+  }, [themeId, autoTheme, current?.id]);
 
   useEffect(() => {
     localStorage.setItem(THEME_AUTO_KEY, autoTheme ? "1" : "0");
