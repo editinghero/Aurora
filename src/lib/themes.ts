@@ -64,8 +64,38 @@ export const THEMES: Theme[] = [
   make("midnight", "Midnight", "230 85% 65%", "260 80% 68%", "200 80% 60%", "230 40% 4%", "235 35% 8%", "245 45% 12%"),
 ];
 
+/**
+ * Converts an HSL string like "285 30% 5%" to a Hex color string.
+ */
+function hslToHex(hslStr: string): string {
+  const parts = hslStr.split(" ");
+  const h = parseFloat(parts[0]);
+  const s = parseFloat(parts[1].replace("%", "")) / 100;
+  const l = parseFloat(parts[2].replace("%", "")) / 100;
+
+  const a = s * Math.min(l, 1 - l);
+  const f = (n: number) => {
+    const k = (n + h / 30) % 12;
+    const color = l - a * Math.max(Math.min(k - 3, 9 - k, 1), -1);
+    return Math.round(255 * color).toString(16).padStart(2, "0");
+  };
+  return `#${f(0)}${f(8)}${f(4)}`;
+}
+
 export function applyTheme(theme: Theme) {
   const r = document.documentElement;
+
+  // Update meta theme-color for PWA and browser UI synchronization.
+  // We use a hex value for better compatibility with mobile browsers.
+  const themeHex = hslToHex(theme.background);
+  let metaThemeColor = document.querySelector('meta[name="theme-color"]');
+  if (!metaThemeColor) {
+    metaThemeColor = document.createElement('meta');
+    metaThemeColor.setAttribute('name', 'theme-color');
+    document.head.appendChild(metaThemeColor);
+  }
+  metaThemeColor.setAttribute('content', themeHex);
+
   r.style.setProperty("--background", theme.background);
   r.style.setProperty("--foreground", theme.foreground);
   r.style.setProperty("--card", theme.card);
