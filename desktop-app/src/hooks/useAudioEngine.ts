@@ -30,7 +30,6 @@ export function useAudioEngine(queue: Track[], currentIndex: number, onIndexChan
   const wetGainRef = useRef<GainNode | null>(null);
   const convolverRef = useRef<ConvolverNode | null>(null);
   const pannerRef = useRef<StereoPannerNode | null>(null);
-  const limiterRef = useRef<DynamicsCompressorNode | null>(null);
   const masterRef = useRef<GainNode | null>(null);
   const analyserRef = useRef<AnalyserNode | null>(null);
   const animationRef = useRef<number | null>(null);
@@ -95,14 +94,6 @@ export function useAudioEngine(queue: Track[], currentIndex: number, onIndexChan
     const panner = ctx.createStereoPanner();
     panner.pan.value = 0;
 
-    // Dynamics Limiter to prevent clipping (crackling)
-    const limiter = ctx.createDynamicsCompressor();
-    limiter.threshold.setValueAtTime(-1.5, ctx.currentTime);
-    limiter.knee.setValueAtTime(10, ctx.currentTime);
-    limiter.ratio.setValueAtTime(15, ctx.currentTime);
-    limiter.attack.setValueAtTime(0.003, ctx.currentTime);
-    limiter.release.setValueAtTime(0.25, ctx.currentTime);
-
     const master = ctx.createGain(); master.gain.value = 1;
     const analyser = ctx.createAnalyser();
     analyser.fftSize = 256;
@@ -116,8 +107,7 @@ export function useAudioEngine(queue: Track[], currentIndex: number, onIndexChan
     conv.connect(wet);
     dry.connect(panner);
     wet.connect(panner);
-    panner.connect(limiter);
-    limiter.connect(master);
+    panner.connect(master);
     master.connect(analyser);
     analyser.connect(ctx.destination);
 
@@ -125,7 +115,6 @@ export function useAudioEngine(queue: Track[], currentIndex: number, onIndexChan
     wetGainRef.current = wet;
     convolverRef.current = conv;
     pannerRef.current = panner;
-    limiterRef.current = limiter;
     masterRef.current = master;
     analyserRef.current = analyser;
   }, []);
@@ -134,11 +123,10 @@ export function useAudioEngine(queue: Track[], currentIndex: number, onIndexChan
   useEffect(() => {
     if (state.eightDEnabled && state.isPlaying) {
       const animate = (time: number) => {
-        if (pannerRef.current && ctxRef.current) {
+        if (pannerRef.current) {
           // Sine wave oscillation for smooth 360-like rotation effect
           const pan = Math.sin(time / 1000 * state.eightDSpeed * Math.PI * 2);
-          // Use linearRampToValueAtTime for smoother transitions and less crackling/zipper noise
-          pannerRef.current.pan.linearRampToValueAtTime(pan, ctxRef.current.currentTime + 0.016);
+          pannerRef.current.pan.setTargetAtTime(pan, ctxRef.current!.currentTime, 0.05);
         }
         animationRef.current = requestAnimationFrame(animate);
       };

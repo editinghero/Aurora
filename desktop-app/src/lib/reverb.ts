@@ -20,7 +20,7 @@ export function createReverbImpulse(
     for (let j = 0; j < 10; j++) {
       const pos = Math.floor(Math.random() * rate * 0.045) + Math.floor(rate * 0.005);
       if (pos < length) {
-        data[pos] += (Math.random() * 2 - 1) * 0.2;
+        data[pos] += (Math.random() * 2 - 1) * 0.25;
       }
     }
 
@@ -42,25 +42,18 @@ export function createReverbImpulse(
       data[i] += lp * env;
     }
 
-    // DC Offset removal (High Pass) and normalization
-    let mean = 0;
-    for (let i = 0; i < length; i++) mean += data[i];
-    mean /= length;
-
+    // Normalize and add a tiny fade-out at the very end
     let max = 0;
     for (let i = 0; i < length; i++) {
-      data[i] -= mean; // Remove DC offset
       const abs = Math.abs(data[i]);
       if (abs > max) max = abs;
     }
 
     if (max > 0) {
       for (let i = 0; i < length; i++) {
-        // Gain reduction (0.6) to avoid clipping when convolved with loud source
-        data[i] = (data[i] / max) * 0.6;
-        // Smooth fade-out at the very end
-        if (i > length - 500) {
-          data[i] *= (length - i) / 500;
+        data[i] /= max;
+        if (i > length - 200) {
+          data[i] *= (length - i) / 200;
         }
       }
     }
