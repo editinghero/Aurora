@@ -85,16 +85,16 @@ function hslToHex(hslStr: string): string {
 export function applyTheme(theme: Theme) {
   const r = document.documentElement;
 
-  // Update meta theme-color for PWA and browser UI synchronization.
-  // We use a hex value for better compatibility with mobile browsers.
-  const themeHex = hslToHex(theme.background);
+  // Update meta theme-color for PWA and browser UI synchronization
+  // We use the background color as the theme color for a seamless look
+  const themeColor = `hsl(${theme.background})`;
   let metaThemeColor = document.querySelector('meta[name="theme-color"]');
   if (!metaThemeColor) {
     metaThemeColor = document.createElement('meta');
-    metaThemeColor.setAttribute('name', 'theme-color');
+    (metaThemeColor as any).name = 'theme-color';
     document.head.appendChild(metaThemeColor);
   }
-  metaThemeColor.setAttribute('content', themeHex);
+  metaThemeColor.setAttribute('content', themeColor);
 
   r.style.setProperty("--background", theme.background);
   r.style.setProperty("--foreground", theme.foreground);

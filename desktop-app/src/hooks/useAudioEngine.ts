@@ -105,13 +105,13 @@ export function useAudioEngine(queue: Track[], currentIndex: number, onIndexChan
     panner.positionY.value = 0;
     panner.positionZ.value = 0;
 
-    const master = ctx.createGain(); master.gain.value = 0.85;
+    const master = ctx.createGain(); master.gain.value = 1;
 
     // Soft limiter to prevent crackling and clipping
     const limiter = ctx.createDynamicsCompressor();
-    limiter.threshold.value = -4.0;
-    limiter.knee.value = 30;
-    limiter.ratio.value = 12;
+    limiter.threshold.value = -1.0;
+    limiter.knee.value = 0;
+    limiter.ratio.value = 20;
     limiter.attack.value = 0.003;
     limiter.release.value = 0.25;
     const analyser = ctx.createAnalyser();
@@ -146,16 +146,14 @@ export function useAudioEngine(queue: Track[], currentIndex: number, onIndexChan
       const animate = (time: number) => {
         if (pannerRef.current && ctxRef.current) {
           const t = ctxRef.current.currentTime;
-          // Full 360-degree rotation around the head with depth and verticality
-          const radius = 12.0;
+          // Full 360-degree rotation around the head
+          // We use a radius of 5.0 to keep sound at a comfortable distance
+          const radius = 5.0;
           const angle = (time / 1000) * state.eightDSpeed * Math.PI * 2;
           const x = Math.sin(angle) * radius;
           const z = Math.cos(angle) * radius;
-          // Add some vertical movement for more depth
-          const y = Math.sin(angle * 0.5) * 2.0;
 
           pannerRef.current.positionX.setTargetAtTime(x, t, 0.05);
-          pannerRef.current.positionY.setTargetAtTime(y, t, 0.05);
           pannerRef.current.positionZ.setTargetAtTime(z, t, 0.05);
         }
         animationRef.current = requestAnimationFrame(animate);
@@ -169,7 +167,6 @@ export function useAudioEngine(queue: Track[], currentIndex: number, onIndexChan
       if (pannerRef.current && ctxRef.current) {
         const t = ctxRef.current.currentTime;
         pannerRef.current.positionX.setTargetAtTime(0, t, 0.1);
-        pannerRef.current.positionY.setTargetAtTime(0, t, 0.1);
         pannerRef.current.positionZ.setTargetAtTime(0, t, 0.1);
       }
     }
