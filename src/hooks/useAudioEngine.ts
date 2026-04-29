@@ -29,7 +29,8 @@ export function useAudioEngine(queue: Track[], currentIndex: number, onIndexChan
   const dryGainRef = useRef<GainNode | null>(null);
   const wetGainRef = useRef<GainNode | null>(null);
   const convolverRef = useRef<ConvolverNode | null>(null);
-  const pannerRef = useRef<StereoPannerNode | null>(null);
+  const pannerRef = useRef<PannerNode | null>(null);
+  const limiterRef = useRef<DynamicsCompressorNode | null>(null);
   const masterRef = useRef<GainNode | null>(null);
   const analyserRef = useRef<AnalyserNode | null>(null);
   const animationRef = useRef<number | null>(null);
@@ -90,11 +91,29 @@ export function useAudioEngine(queue: Track[], currentIndex: number, onIndexChan
     conv.normalize = true;
     conv.buffer = createReverbImpulse(ctx, 3.5, 3.5);
 
-    // 8D Panner
-    const panner = ctx.createStereoPanner();
-    panner.pan.value = 0;
+    // 8D Panner using HRTF for better spatialization
+    const panner = ctx.createPanner();
+    panner.panningModel = "HRTF";
+    panner.distanceModel = "inverse";
+    panner.refDistance = 1;
+    panner.maxDistance = 10000;
+    panner.rolloffFactor = 1;
+    panner.coneInnerAngle = 360;
+    panner.coneOuterAngle = 0;
+    panner.coneOuterGain = 0;
+    panner.positionX.value = 0;
+    panner.positionY.value = 0;
+    panner.positionZ.value = 0;
 
     const master = ctx.createGain(); master.gain.value = 1;
+
+    // Soft limiter to prevent crackling and clipping
+    const limiter = ctx.createDynamicsCompressor();
+    limiter.threshold.value = -1.0;
+    limiter.knee.value = 0;
+    limiter.ratio.value = 20;
+    limiter.attack.value = 0.003;
+    limiter.release.value = 0.25;
     const analyser = ctx.createAnalyser();
     analyser.fftSize = 256;
     analyser.smoothingTimeConstant = 0.82;
@@ -108,13 +127,15 @@ export function useAudioEngine(queue: Track[], currentIndex: number, onIndexChan
     dry.connect(panner);
     wet.connect(panner);
     panner.connect(master);
-    master.connect(analyser);
+    master.connect(limiter);
+    limiter.connect(analyser);
     analyser.connect(ctx.destination);
 
     dryGainRef.current = dry;
     wetGainRef.current = wet;
     convolverRef.current = conv;
     pannerRef.current = panner;
+    limiterRef.current = limiter;
     masterRef.current = master;
     analyserRef.current = analyser;
   }, []);
@@ -123,10 +144,17 @@ export function useAudioEngine(queue: Track[], currentIndex: number, onIndexChan
   useEffect(() => {
     if (state.eightDEnabled && state.isPlaying) {
       const animate = (time: number) => {
-        if (pannerRef.current) {
-          // Sine wave oscillation for smooth 360-like rotation effect
-          const pan = Math.sin(time / 1000 * state.eightDSpeed * Math.PI * 2);
-          pannerRef.current.pan.setTargetAtTime(pan, ctxRef.current!.currentTime, 0.05);
+        if (pannerRef.current && ctxRef.current) {
+          const t = ctxRef.current.currentTime;
+          // Full 360-degree rotation around the head
+          // We use a radius of 5.0 to keep sound at a comfortable distance
+          const radius = 5.0;
+          const angle = (time / 1000) * state.eightDSpeed * Math.PI * 2;
+          const x = Math.sin(angle) * radius;
+          const z = Math.cos(angle) * radius;
+
+          pannerRef.current.positionX.setTargetAtTime(x, t, 0.05);
+          pannerRef.current.positionZ.setTargetAtTime(z, t, 0.05);
         }
         animationRef.current = requestAnimationFrame(animate);
       };
@@ -137,7 +165,9 @@ export function useAudioEngine(queue: Track[], currentIndex: number, onIndexChan
         animationRef.current = null;
       }
       if (pannerRef.current && ctxRef.current) {
-        pannerRef.current.pan.setTargetAtTime(0, ctxRef.current.currentTime, 0.1);
+        const t = ctxRef.current.currentTime;
+        pannerRef.current.positionX.setTargetAtTime(0, t, 0.1);
+        pannerRef.current.positionZ.setTargetAtTime(0, t, 0.1);
       }
     }
     return () => {
