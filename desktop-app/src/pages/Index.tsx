@@ -659,6 +659,10 @@ const Index = () => {
         onPreservePitch={engine.setPreservePitch}
         reverbWet={engine.state.reverbWet}
         onReverbWet={engine.setReverbWet}
+        eightDEnabled={engine.state.eightDEnabled}
+        onEightDEnabled={engine.setEightDEnabled}
+        eightDSpeed={engine.state.eightDSpeed}
+        onEightDSpeed={engine.setEightDSpeed}
       />
       <QueueSheet
         open={queueOpen}
