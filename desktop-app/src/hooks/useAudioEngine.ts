@@ -286,10 +286,10 @@ export function useAudioEngine(queue: Track[], currentIndex: number, onIndexChan
     ensureGraph();
     if (wetGainRef.current && dryGainRef.current && ctxRef.current) {
       const t = ctxRef.current.currentTime;
-      // Equal-power-ish crossfade so the perceived loudness stays stable
-      // and reverb sounds lush rather than washed out.
-      const wetGain = Math.sin((w * Math.PI) / 2) * 0.9;
-      const dryGain = Math.cos((w * Math.PI) / 2) * 0.85 + 0.15;
+      // Use a safer gain scaling to prevent overall output level from exceeding 1.0 (clipping)
+      // When reverb is fully wet, dry should be lower to avoid overload.
+      const wetGain = Math.sin((w * Math.PI) / 2) * 0.7; // slightly lower max wet
+      const dryGain = Math.cos((w * Math.PI) / 2) * 0.8; // slightly lower max dry
       wetGainRef.current.gain.linearRampToValueAtTime(wetGain, t + 0.08);
       dryGainRef.current.gain.linearRampToValueAtTime(dryGain, t + 0.08);
     }
