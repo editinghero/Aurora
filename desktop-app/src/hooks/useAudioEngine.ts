@@ -60,7 +60,11 @@ export function useAudioEngine(queue: Track[], currentIndex: number, onIndexChan
     }
     if (ctxRef.current) return;
     const Ctx = window.AudioContext || (window as any).webkitAudioContext;
-    const ctx: AudioContext = new Ctx();
+    // Mobile-optimized: Use larger buffer size to prevent crackling
+    const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+    const ctx: AudioContext = isMobile 
+      ? new Ctx({ latencyHint: 'playback', sampleRate: 48000 })
+      : new Ctx({ latencyHint: 'balanced' });
     ctxRef.current = ctx;
 
     const src = ctx.createMediaElementSource(audioRef.current!);
@@ -89,34 +93,41 @@ export function useAudioEngine(queue: Track[], currentIndex: number, onIndexChan
     reverbPre.Q.value = 0.7;
     const conv = ctx.createConvolver();
     conv.normalize = true;
-    conv.buffer = createReverbImpulse(ctx, 3.5, 3.5);
+    // Mobile-optimized: Shorter reverb tail on mobile to reduce CPU load
+    const reverbLength = isMobile ? 2.0 : 3.5;
+    const reverbDecay = isMobile ? 2.5 : 3.5;
+    conv.buffer = createReverbImpulse(ctx, reverbLength, reverbDecay);
 
     // 8D Panner using HRTF for better spatialization
+    // Mobile-optimized: Use simpler panning on mobile devices to reduce CPU load
     const panner = ctx.createPanner();
-    panner.panningModel = "HRTF";
-    panner.distanceModel = "inverse";
+    panner.panningModel = isMobile ? "equalpower" : "HRTF";
+    panner.distanceModel = "linear";
     panner.refDistance = 1;
-    panner.maxDistance = 10000;
+    panner.maxDistance = 5;
     panner.rolloffFactor = 1;
     panner.coneInnerAngle = 360;
-    panner.coneOuterAngle = 0;
-    panner.coneOuterGain = 0;
+    panner.coneOuterAngle = 360;
+    panner.coneOuterGain = 1;
     panner.positionX.value = 0;
     panner.positionY.value = 0;
-    panner.positionZ.value = 0;
+    panner.positionZ.value = -1; // Position slightly in front of listener
 
-    const master = ctx.createGain(); master.gain.value = 1;
+    const master = ctx.createGain(); 
+    // Reduce master gain to prevent clipping with effects
+    master.gain.value = 0.8;
 
     // Soft limiter to prevent crackling and clipping
+    // Mobile-optimized: Gentler compression settings for mobile devices
     const limiter = ctx.createDynamicsCompressor();
-    limiter.threshold.value = -1.0;
-    limiter.knee.value = 0;
-    limiter.ratio.value = 20;
+    limiter.threshold.value = isMobile ? -10.0 : -6.0;
+    limiter.knee.value = 12.0;
+    limiter.ratio.value = isMobile ? 6 : 8;
     limiter.attack.value = 0.003;
     limiter.release.value = 0.25;
     const analyser = ctx.createAnalyser();
     analyser.fftSize = 256;
-    analyser.smoothingTimeConstant = 0.82;
+    analyser.smoothingTimeConstant = isMobile ? 0.85 : 0.82;
 
     src.connect(filters[0]);
     const eqOut = filters[filters.length - 1];
@@ -146,14 +157,15 @@ export function useAudioEngine(queue: Track[], currentIndex: number, onIndexChan
       const animate = (time: number) => {
         if (pannerRef.current && ctxRef.current) {
           const t = ctxRef.current.currentTime;
-          // Full 360-degree rotation around the head
-          // We use a radius of 5.0 to keep sound at a comfortable distance
-          const radius = 5.0;
+          // Circular motion around the listener at ear level
+          // Smaller radius (2.0) keeps sound closer and more present
+          const radius = 2.0;
           const angle = (time / 1000) * state.eightDSpeed * Math.PI * 2;
           const x = Math.sin(angle) * radius;
-          const z = Math.cos(angle) * radius;
+          const z = Math.cos(angle) * radius - 1; // Offset to keep in front
 
           pannerRef.current.positionX.setTargetAtTime(x, t, 0.05);
+          pannerRef.current.positionY.setTargetAtTime(0, t, 0.05); // Keep at ear level
           pannerRef.current.positionZ.setTargetAtTime(z, t, 0.05);
         }
         animationRef.current = requestAnimationFrame(animate);
@@ -167,7 +179,8 @@ export function useAudioEngine(queue: Track[], currentIndex: number, onIndexChan
       if (pannerRef.current && ctxRef.current) {
         const t = ctxRef.current.currentTime;
         pannerRef.current.positionX.setTargetAtTime(0, t, 0.1);
-        pannerRef.current.positionZ.setTargetAtTime(0, t, 0.1);
+        pannerRef.current.positionY.setTargetAtTime(0, t, 0.1);
+        pannerRef.current.positionZ.setTargetAtTime(-1, t, 0.1); // Return to front center
       }
     }
     return () => {
@@ -297,8 +310,10 @@ export function useAudioEngine(queue: Track[], currentIndex: number, onIndexChan
   }, []);
 
   const setVolume = useCallback((v: number) => {
-    if (audioRef.current) audioRef.current.volume = v;
-    setState((s) => ({ ...s, volume: v }));
+    // Clamp volume to safe range
+    const safeVolume = Math.max(0, Math.min(1, v));
+    if (audioRef.current) audioRef.current.volume = safeVolume;
+    setState((s) => ({ ...s, volume: safeVolume }));
   }, []);
 
   const setSpeed = useCallback((s: number) => {
@@ -318,8 +333,8 @@ export function useAudioEngine(queue: Track[], currentIndex: number, onIndexChan
       const t = ctxRef.current.currentTime;
       // Use a safer gain scaling to prevent overall output level from exceeding 1.0 (clipping)
       // When reverb is fully wet, dry should be lower to avoid overload.
-      const wetGain = Math.sin((w * Math.PI) / 2) * 0.7; // slightly lower max wet
-      const dryGain = Math.cos((w * Math.PI) / 2) * 0.8; // slightly lower max dry
+      const wetGain = Math.sin((w * Math.PI) / 2) * 0.5; // Reduced from 0.7 to 0.5
+      const dryGain = Math.cos((w * Math.PI) / 2) * 0.7; // Reduced from 0.8 to 0.7
       wetGainRef.current.gain.linearRampToValueAtTime(wetGain, t + 0.08);
       dryGainRef.current.gain.linearRampToValueAtTime(dryGain, t + 0.08);
     }
@@ -339,7 +354,9 @@ export function useAudioEngine(queue: Track[], currentIndex: number, onIndexChan
     ensureGraph();
     const node = eqNodesRef.current[index];
     if (node && ctxRef.current) {
-      node.gain.setTargetAtTime(gainDb, ctxRef.current.currentTime, 0.02);
+      // Clamp EQ gain to prevent distortion (-12dB to +12dB)
+      const clampedGain = Math.max(-12, Math.min(12, gainDb));
+      node.gain.setTargetAtTime(clampedGain, ctxRef.current.currentTime, 0.02);
     }
     setState((p) => {
       const next = [...p.eqGains]; next[index] = gainDb;
