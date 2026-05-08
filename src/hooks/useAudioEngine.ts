@@ -102,16 +102,16 @@ export function useAudioEngine(queue: Track[], currentIndex: number, onIndexChan
     // Mobile-optimized: Use simpler panning on mobile devices to reduce CPU load
     const panner = ctx.createPanner();
     panner.panningModel = isMobile ? "equalpower" : "HRTF";
-    panner.distanceModel = "linear";
+    panner.distanceModel = "inverse";
     panner.refDistance = 1;
-    panner.maxDistance = 5;
+    panner.maxDistance = 10000;
     panner.rolloffFactor = 1;
     panner.coneInnerAngle = 360;
     panner.coneOuterAngle = 360;
     panner.coneOuterGain = 1;
     panner.positionX.value = 0;
     panner.positionY.value = 0;
-    panner.positionZ.value = -1; // Position slightly in front of listener
+    panner.positionZ.value = 1; // Start in front of listener
 
     const master = ctx.createGain(); 
     // Reduce master gain to prevent clipping with effects
@@ -154,33 +154,42 @@ export function useAudioEngine(queue: Track[], currentIndex: number, onIndexChan
   // 8D Animation Loop
   useEffect(() => {
     if (state.eightDEnabled && state.isPlaying) {
-      const animate = (time: number) => {
+      let startTime = performance.now();
+      
+      const animate = (currentTime: number) => {
         if (pannerRef.current && ctxRef.current) {
+          const elapsed = (currentTime - startTime) / 1000; // Convert to seconds
           const t = ctxRef.current.currentTime;
-          // Circular motion around the listener at ear level
-          // Smaller radius (2.0) keeps sound closer and more present
-          const radius = 2.0;
-          const angle = (time / 1000) * state.eightDSpeed * Math.PI * 2;
+          
+          // Smooth circular motion at a fixed radius
+          const radius = 1.5; // Distance from listener
+          const rotationsPerSecond = state.eightDSpeed;
+          const angle = elapsed * rotationsPerSecond * Math.PI * 2;
+          
+          // Calculate position on circle (XZ plane, Y stays at 0 for ear level)
           const x = Math.sin(angle) * radius;
-          const z = Math.cos(angle) * radius - 1; // Offset to keep in front
-
-          pannerRef.current.positionX.setTargetAtTime(x, t, 0.05);
-          pannerRef.current.positionY.setTargetAtTime(0, t, 0.05); // Keep at ear level
-          pannerRef.current.positionZ.setTargetAtTime(z, t, 0.05);
+          const z = Math.cos(angle) * radius;
+          
+          // Use setValueAtTime for immediate, precise positioning
+          pannerRef.current.positionX.setValueAtTime(x, t);
+          pannerRef.current.positionY.setValueAtTime(0, t);
+          pannerRef.current.positionZ.setValueAtTime(z, t);
         }
         animationRef.current = requestAnimationFrame(animate);
       };
+      
       animationRef.current = requestAnimationFrame(animate);
     } else {
       if (animationRef.current) {
         cancelAnimationFrame(animationRef.current);
         animationRef.current = null;
       }
+      // Reset to front center when disabled
       if (pannerRef.current && ctxRef.current) {
         const t = ctxRef.current.currentTime;
-        pannerRef.current.positionX.setTargetAtTime(0, t, 0.1);
-        pannerRef.current.positionY.setTargetAtTime(0, t, 0.1);
-        pannerRef.current.positionZ.setTargetAtTime(-1, t, 0.1); // Return to front center
+        pannerRef.current.positionX.setValueAtTime(0, t);
+        pannerRef.current.positionY.setValueAtTime(0, t);
+        pannerRef.current.positionZ.setValueAtTime(1, t); // In front of listener
       }
     }
     return () => {
