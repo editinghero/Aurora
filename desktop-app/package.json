@@ -24,7 +24,10 @@
       "package.json"
     ],
     "win": {
-      "target": "portable",
+      "target": [
+        "portable",
+        "nsis"
+      ],
       "icon": "icon.png"
     },
     "nsis": {
