@@ -18,6 +18,7 @@ dist-installer
 release
 out
 *.local
+backup
 
 # Electron build artifacts
 desktop-app/dist
