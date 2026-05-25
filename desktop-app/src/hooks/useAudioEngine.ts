@@ -34,6 +34,8 @@ export function useAudioEngine(queue: Track[], currentIndex: number, onIndexChan
   const masterRef = useRef<GainNode | null>(null);
   const analyserRef = useRef<AnalyserNode | null>(null);
   const animationRef = useRef<number | null>(null);
+  const lastTimeRef = useRef<number | null>(null);
+  const accumulatedAngleRef = useRef<number>(0);
 
   const [state, setState] = useState<EngineState>({
     isPlaying: false,
@@ -66,6 +68,19 @@ export function useAudioEngine(queue: Track[], currentIndex: number, onIndexChan
       ? new Ctx({ latencyHint: 'playback', sampleRate: 48000 })
       : new Ctx({ latencyHint: 'balanced' });
     ctxRef.current = ctx;
+
+    // Standardize listener orientation for binaural 8D panning
+    const listener = ctx.listener;
+    if (listener.forwardX) {
+      listener.forwardX.value = 0;
+      listener.forwardY.value = 0;
+      listener.forwardZ.value = -1;
+      listener.upX.value = 0;
+      listener.upY.value = 1;
+      listener.upZ.value = 0;
+    } else if (listener.setOrientation) {
+      listener.setOrientation(0, 0, -1, 0, 1, 0);
+    }
 
     const src = ctx.createMediaElementSource(audioRef.current!);
     sourceRef.current = src;
@@ -111,7 +126,7 @@ export function useAudioEngine(queue: Track[], currentIndex: number, onIndexChan
     panner.coneOuterGain = 1;
     panner.positionX.value = 0;
     panner.positionY.value = 0;
-    panner.positionZ.value = 1; // Start in front of listener
+    panner.positionZ.value = -1; // Start in front of listener (negative Z = front in Web Audio)
 
     const master = ctx.createGain(); 
     // Reduce master gain to prevent clipping with effects
@@ -154,26 +169,58 @@ export function useAudioEngine(queue: Track[], currentIndex: number, onIndexChan
   // 8D Animation Loop
   useEffect(() => {
     if (state.eightDEnabled && state.isPlaying) {
-      let startTime = performance.now();
+      // Do NOT reset accumulatedAngleRef.current so that speed changes don't cause sudden snapping jumps.
+      // We only reset lastTimeRef.current to null so that the first frame doesn't calculate a huge elapsed delta.
+      lastTimeRef.current = null;
       
       const animate = (currentTime: number) => {
         if (pannerRef.current && ctxRef.current) {
-          const elapsed = (currentTime - startTime) / 1000; // Convert to seconds
+          if (lastTimeRef.current === null) {
+            lastTimeRef.current = currentTime;
+          }
+          const elapsed = (currentTime - lastTimeRef.current) / 1000; // Convert to seconds
+          lastTimeRef.current = currentTime;
+          
+          // Accumulate the angle smoothly, preserving continuity across speed slider changes
+          const rotationsPerSecond = state.eightDSpeed;
+          accumulatedAngleRef.current += elapsed * rotationsPerSecond * Math.PI * 2;
+          const angle = accumulatedAngleRef.current;
+          
           const t = ctxRef.current.currentTime;
           
-          // Smooth circular motion at a fixed radius
+          // Smooth circular motion at a fixed radius around the listener's head
           const radius = 1.5; // Distance from listener
-          const rotationsPerSecond = state.eightDSpeed;
-          const angle = elapsed * rotationsPerSecond * Math.PI * 2;
           
-          // Calculate position on circle (XZ plane, Y stays at 0 for ear level)
+          // Calculate position on circle in XZ plane
+          // Web Audio: negative Z = in front, positive Z = behind
+          // X: sin(angle) gives left-right oscillation
+          // Z: -cos(angle) ensures sound starts IN FRONT and rotates properly
           const x = Math.sin(angle) * radius;
-          const z = Math.cos(angle) * radius;
+          const z = -Math.cos(angle) * radius;
           
-          // Use setValueAtTime for immediate, precise positioning
-          pannerRef.current.positionX.setValueAtTime(x, t);
-          pannerRef.current.positionY.setValueAtTime(0, t);
-          pannerRef.current.positionZ.setValueAtTime(z, t);
+          // Subtle Y-axis bobbing for true 3D immersion (8D effect)
+          // Double-frequency sine creates a gentle up/down as the sound circles
+          const y = Math.sin(angle * 2) * 0.3;
+          
+          // Use linearRampToValueAtTime for SMOOTH transitions between frames
+          // setValueAtTime causes abrupt jumps that sound like sudden pops/clicks
+          // The ramp duration (~25ms) overlaps with the next frame (~16ms) ensuring
+          // continuous smooth motion with no gaps
+          const rampDuration = 0.025; // 25ms ramp for buttery-smooth transitions
+          
+          pannerRef.current.positionX.cancelScheduledValues(t);
+          pannerRef.current.positionY.cancelScheduledValues(t);
+          pannerRef.current.positionZ.cancelScheduledValues(t);
+          
+          // Anchor current position before ramping (required by Web Audio spec)
+          pannerRef.current.positionX.setValueAtTime(pannerRef.current.positionX.value, t);
+          pannerRef.current.positionY.setValueAtTime(pannerRef.current.positionY.value, t);
+          pannerRef.current.positionZ.setValueAtTime(pannerRef.current.positionZ.value, t);
+          
+          // Smoothly ramp to the new target position
+          pannerRef.current.positionX.linearRampToValueAtTime(x, t + rampDuration);
+          pannerRef.current.positionY.linearRampToValueAtTime(y, t + rampDuration);
+          pannerRef.current.positionZ.linearRampToValueAtTime(z, t + rampDuration);
         }
         animationRef.current = requestAnimationFrame(animate);
       };
@@ -184,12 +231,23 @@ export function useAudioEngine(queue: Track[], currentIndex: number, onIndexChan
         cancelAnimationFrame(animationRef.current);
         animationRef.current = null;
       }
-      // Reset to front center when disabled
+      lastTimeRef.current = null;
+      accumulatedAngleRef.current = 0; // Reset angle when disabled or paused
+      
+      // Reset to front center when disabled (smooth transition, not abrupt)
       if (pannerRef.current && ctxRef.current) {
         const t = ctxRef.current.currentTime;
-        pannerRef.current.positionX.setValueAtTime(0, t);
-        pannerRef.current.positionY.setValueAtTime(0, t);
-        pannerRef.current.positionZ.setValueAtTime(1, t); // In front of listener
+        pannerRef.current.positionX.cancelScheduledValues(t);
+        pannerRef.current.positionY.cancelScheduledValues(t);
+        pannerRef.current.positionZ.cancelScheduledValues(t);
+        
+        pannerRef.current.positionX.setValueAtTime(pannerRef.current.positionX.value, t);
+        pannerRef.current.positionY.setValueAtTime(pannerRef.current.positionY.value, t);
+        pannerRef.current.positionZ.setValueAtTime(pannerRef.current.positionZ.value, t);
+        
+        pannerRef.current.positionX.linearRampToValueAtTime(0, t + 0.1);
+        pannerRef.current.positionY.linearRampToValueAtTime(0, t + 0.1);
+        pannerRef.current.positionZ.linearRampToValueAtTime(-1, t + 0.1); // Front of listener (negative Z = front)
       }
     }
     return () => {
